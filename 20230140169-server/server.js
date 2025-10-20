@@ -1,19 +1,28 @@
-const express = require('express');
+const express = require("express");
 const cors = require("cors");
 const app = express();
-const port = 5000;
+const PORT = 5000;
+const morgan = require("morgan");
 
+// Impor router
+const presensiRoutes = require("./routes/presensi");
+const reportRoutes = require("./routes/reports");
+
+// Middleware
 app.use(cors());
-
-app.get('/', (req, res) => {
-  res.json({ message: 'Hello from Node.js Server!' });
+app.use(express.json());
+app.use(morgan("dev"));
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
 });
-
- 	const bookRoutes = require('./router/books');
-  app.use(express.json());
- 	app.use('/api/books', bookRoutes);
-
-
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+app.get("/", (req, res) => {
+  res.send("Home Page for API");
+});
+const ruteBuku = require("./routes/books");
+app.use("/api/books", ruteBuku);
+app.use("/api/presensi", presensiRoutes);
+app.use("/api/reports", reportRoutes);
+app.listen(PORT, () => {
+  console.log(`Express server running at http://localhost:${PORT}/`);
 });
