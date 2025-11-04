@@ -10,20 +10,19 @@ module.exports = {
         type: Sequelize.INTEGER
       },
       userId: {
-        type: Sequelize.INTEGER,
-        allowNull: false
+        type: Sequelize.INTEGER
       },
-      nama: {
+      nama : {
         type: Sequelize.STRING,
-        allowNull: false
-      },
-      checkIn: {
         allowNull: false,
-        type: Sequelize.DATE
       },
-      checkOut: {
-        allowNull: true, // checkOut bisa kosong saat pertama kali check-in
-        type: Sequelize.DATE
+      checkIn : {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+      checkOut : {
+        type: Sequelize.DATE,
+        allowNull: true,
       },
       createdAt: {
         allowNull: false,
