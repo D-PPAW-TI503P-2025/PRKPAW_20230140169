@@ -63,7 +63,8 @@ exports.login = async (req, res) => {
 
     res.json({
       message: "Login berhasil",
-      token: token 
+      token: token,
+      nama: user.nama // kirim nama ke frontend
     });
 
   } catch (error) {
