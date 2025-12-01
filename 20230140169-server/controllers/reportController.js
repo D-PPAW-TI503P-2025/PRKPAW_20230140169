@@ -1,46 +1,40 @@
-const { Presensi } = require("../models");
+const { Presensi, User } = require("../models");
 const { Op } = require("sequelize");
+
+const { format } = require("date-fns-tz");
 
 exports.getDailyReport = async (req, res) => {
   try {
-    const { tanggal, nama } = req.query; // Ambil query parameter
-    let options = { where: {} };
+    const { nama } = req.query;
 
-    //  Jika parameter tanggal diisi, filter berdasarkan tanggal itu
-    if (tanggal) {
-      const startDate = new Date(`${tanggal}T00:00:00.000Z`);
-      const endDate = new Date(`${tanggal}T23:59:59.999Z`);
-      options.where.checkIn = {
-        [Op.between]: [startDate, endDate],
-      };
-    }
+    let options = {
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["nama"],
+        },
+      ],
+    };
 
-    //  Jika parameter nama diisi, filter berdasarkan nama
     if (nama) {
-      options.where.nama = {
-        [Op.like]: `%${nama}%`,
+      // Baris ini akan error jika 'Op' tidak diimpor
+      options.include[0].where = {
+        nama: {
+          [Op.like]: `%${nama}%`,
+        },
       };
     }
 
-    //  Ambil data dari database
-    const records = await Presensi.findAll({
-      ...options,
-      order: [["checkIn", "ASC"]],
-    });
-
-    //  Format tanggal laporan (kalau tidak ada tanggal, tulis "Semua Tanggal")
-    const reportDate = tanggal
-      ? tanggal.split("-").reverse().join("/")
-      : "Semua Tanggal";
+    const records = await Presensi.findAll(options);
 
     res.json({
-      reportDate,
+      reportDate: new Date().toLocaleDateString(),
       data: records,
     });
   } catch (error) {
-    res.status(500).json({
-      message: "Gagal mengambil laporan",
-      error: error.message,
-    });
+    res
+      .status(500)
+      .json({ message: "Gagal mengambil laporan", error: error.message });
   }
 };

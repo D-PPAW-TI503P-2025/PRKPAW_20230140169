@@ -1,118 +1,113 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { FaUserGraduate, FaFileAlt, FaCog, FaSeedling } from "react-icons/fa";
+import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 
-function DashboardPage() {
+const DashboardPage = () => {
   const navigate = useNavigate();
-  const [nama, setNama] = useState("");
+  const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userNama = localStorage.getItem("nama");
-
-    if (!token) {
-      navigate("/login");
-    } else {
-      setNama(userNama || "Pengguna");
-    }
-  }, [navigate]);
+  const [user, setUser] = useState(null);
+  const [lastAttendance, setLastAttendance] = useState(null);
+  const [error, setError] = useState("");
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    localStorage.removeItem("nama");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-100 via-emerald-100 to-green-200">
-      {/* Navbar */}
-      <header className="flex justify-between items-center bg-white shadow-md p-4 px-8 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <FaSeedling className="text-green-600 text-2xl" />
-          <h1 className="text-2xl font-extrabold text-green-700 tracking-wide">
-            Smart Dashboard
-          </h1>
-        </div>
+  useEffect(() => {
+    if (!token) {
+      navigate("/login", { replace: true });
+      return;
+    }
 
-        <div className="flex items-center gap-4">
-          <p className="text-gray-700 font-medium italic">
-            Hi, <span className="font-semibold text-green-700">{nama}</span> 👋
-          </p>
+    try {
+      const decoded = jwtDecode(token);
+      setUser(decoded);
+    } catch (err) {
+      console.error("Token rusak:", err);
+      setError("Token tidak valid, silahkan login ulang.");
+      handleLogout();
+    }
+
+    // Fetch data presensi terakhir untuk ditampilkan di dashboard
+    const fetchLastAttendance = async () => {
+      try {
+        const res = await axios.get("http://localhost:3001/api/presensi/last", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setLastAttendance(res.data.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchLastAttendance();
+  }, [token, navigate]);
+
+  if (!user) {
+    return <div className="text-center mt-10">Memuat dashboard...</div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex justify-center">
+      <div className="w-full max-w-4xl mt-10">
+
+        {/* Card Profile */}
+        <div className="bg-white p-6 rounded-2xl shadow-md mb-6">
+          {error && (
+            <div className="bg-red-100 text-red-600 p-3 rounded-md mb-3">{error}</div>
+          )}
+          <h1 className="text-2xl font-bold mb-2 text-gray-800">Dashboard Presensi</h1>
+          <p className="text-gray-600">Selamat datang kembali 👋</p>
+
+          <div className="mt-4 space-y-1 text-gray-800">
+            <p><strong>Nama:</strong> {user.nama}</p>
+            <p><strong>Email:</strong> {user.email}</p>
+            <p><strong>Role:</strong> {user.role}</p>
+          </div>
+
           <button
             onClick={handleLogout}
-            className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg shadow hover:from-red-600 hover:to-red-700 transition-all duration-300"
+            className="mt-4 px-4 py-2 rounded-lg text-sm font-semibold bg-red-500 hover:bg-red-600 text-white shadow"
           >
             Logout
           </button>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <motion.div
-        initial={{ opacity: 0, y: 25 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="flex flex-col items-center justify-center py-20 text-center px-4"
-      >
-        <motion.h2
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="text-4xl sm:text-5xl font-extrabold text-green-700 mb-4"
-        >
-          Selamat Datang, {nama}! 🌱
-        </motion.h2>
+        {/* Card Presensi Terakhir */}
+        {lastAttendance && (
+          <div className="bg-white p-6 rounded-2xl shadow-md">
+            <h2 className="text-xl font-bold mb-4 text-gray-800">Presensi Terakhir Anda</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="text-left bg-gray-50 text-gray-600 text-sm">
+                    <th className="border p-2">Check-In</th>
+                    <th className="border p-2">Check-Out</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="text-gray-800">
+                    <td className="border p-2">
+                      {new Date(lastAttendance.checkIn).toLocaleString("id-ID")}
+                    </td>
+                    <td className="border p-2">
+                      {lastAttendance.checkOut
+                        ? new Date(lastAttendance.checkOut).toLocaleString("id-ID")
+                        : "Belum Check-Out"}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-        <p className="text-gray-700 mb-10 max-w-2xl text-lg leading-relaxed">
-          Kamu sekarang berada di <strong>Smart Dashboard</strong> — pusat
-          kendali untuk mengelola data, melihat laporan, dan mengatur sistem
-          dengan mudah & efisien.
-        </p>
-
-        {/* Cards Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 w-full max-w-5xl">
-          {[
-            {
-              icon: <FaUserGraduate className="text-green-500 text-5xl mb-3" />,
-              title: "Data Mahasiswa",
-              desc: "Lihat dan kelola seluruh data mahasiswa.",
-              color: "from-green-400 to-green-600",
-            },
-            {
-              icon: <FaFileAlt className="text-green-500 text-5xl mb-3" />,
-              title: "Laporan",
-              desc: "Pantau hasil laporan mingguan secara interaktif.",
-              color: "from-emerald-400 to-emerald-600",
-            },
-            {
-              icon: <FaCog className="text-green-500 text-5xl mb-3" />,
-              title: "Pengaturan",
-              desc: "Ubah preferensi akun & sistem sesuai kebutuhanmu.",
-              color: "from-lime-400 to-lime-600",
-            },
-          ].map((card, index) => (
-            <motion.div
-              key={index}
-              whileHover={{ scale: 1.05, y: -5 }}
-              className={`bg-white rounded-2xl shadow-xl p-8 transition-all duration-300 hover:shadow-2xl`}
-            >
-              {card.icon}
-              <h3 className="font-bold text-green-700 text-xl mb-3">
-                {card.title}
-              </h3>
-              <p className="text-gray-600">{card.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Footer */}
-      <footer className="text-center text-gray-600 py-6 text-sm">
-        © {new Date().getFullYear()} Smart Dashboard — dibuat dengan 🌿 oleh Timmu.
-      </footer>
+      </div>
     </div>
   );
-}
+};
 
 export default DashboardPage;
